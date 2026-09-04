@@ -83,7 +83,7 @@ class Checker
 
         foreach ($this->getTargetPackages() as $package) {
             $name = $package->getName();
-            if (isset($ignore[$name])) {
+            if (isset($ignore[strtolower($name)])) {
                 $this->io->write(sprintf('  Skipping ignored package <info>%s</info>', $name), true, IOInterface::VERBOSE);
                 continue;
             }
@@ -139,6 +139,8 @@ class Checker
             $this->io->write('<info>Dependency Shield:</info> all checked plugins are compatible.');
             return;
         }
+
+        sort($violations);
 
         $detail = "Dependency Shield found incompatible WordPress plugin requirements:\n  - "
             . implode("\n  - ", $violations);
@@ -200,6 +202,13 @@ class Checker
 
             $packages[] = $package;
         }
+
+        usort(
+            $packages,
+            static function (PackageInterface $a, PackageInterface $b): int {
+                return strcmp($a->getName(), $b->getName());
+            }
+        );
 
         return $packages;
     }

@@ -278,6 +278,101 @@ class CheckerTest extends TestCase
         self::assertStringContainsString('all checked plugins are compatible', $io->getOutput());
     }
 
+    public function testRunsWithStringInstallerPathRule(): void
+    {
+        $pluginDir = $this->fixtureRoot . '/string-rule';
+        mkdir($pluginDir);
+        file_put_contents(
+            $pluginDir . '/string-rule.php',
+            "<?php\n/**\n * Plugin Name: String Rule\n * Requires PHP: 7.4\n */\n"
+        );
+
+        $io = new BufferIO();
+        $checker = $this->createChecker(
+            [
+                $this->createPluginPackage('vendor/string-rule', $pluginDir),
+                $this->createWpCorePackage('6.8.3'),
+            ],
+            ['vendor/string-rule' => true],
+            [],
+            '8.1.0',
+            [
+                'web/app/plugins/{$name}/' => 'type:wordpress-plugin',
+            ],
+            $io
+        );
+
+        $checker->check();
+        self::assertStringContainsString('all checked plugins are compatible', $io->getOutput());
+    }
+
+    public function testIgnoresPackagesListedWithDifferentCase(): void
+    {
+        $pluginDir = $this->fixtureRoot . '/mixed-case';
+        mkdir($pluginDir);
+        file_put_contents(
+            $pluginDir . '/mixed-case.php',
+            "<?php\n/**\n * Plugin Name: Mixed Case\n * Requires PHP: 99.0\n */\n"
+        );
+
+        $checker = $this->createChecker(
+            [
+                $this->createPluginPackage('vendor/mixed-case', $pluginDir),
+                $this->createWpCorePackage('6.8.3'),
+            ],
+            ['vendor/mixed-case' => true],
+            ['Vendor/Mixed-Case'],
+            '8.1.0'
+        );
+
+        $checker->check();
+        $this->addToAssertionCount(1);
+    }
+
+    public function testViolationsAreReportedInStableOrder(): void
+    {
+        $zebraDir = $this->fixtureRoot . '/zebra';
+        $alphaDir = $this->fixtureRoot . '/alpha';
+        mkdir($zebraDir);
+        mkdir($alphaDir);
+        file_put_contents(
+            $zebraDir . '/zebra.php',
+            "<?php\n/**\n * Plugin Name: Zebra\n * Requires PHP: 9.0\n */\n"
+        );
+        file_put_contents(
+            $alphaDir . '/alpha.php',
+            "<?php\n/**\n * Plugin Name: Alpha\n * Requires PHP: 9.0\n */\n"
+        );
+
+        $io = new BufferIO();
+        $checker = $this->createChecker(
+            [
+                $this->createPluginPackage('vendor/zebra', $zebraDir),
+                $this->createPluginPackage('vendor/alpha', $alphaDir),
+                $this->createWpCorePackage('6.8.3'),
+            ],
+            [
+                'vendor/zebra' => true,
+                'vendor/alpha' => true,
+            ],
+            [],
+            '8.1.0',
+            null,
+            $io
+        );
+
+        try {
+            $checker->check();
+            self::fail('Expected RuntimeException');
+        } catch (RuntimeException $e) {
+            $output = $io->getOutput();
+            self::assertLessThan(
+                strpos($output, 'vendor/zebra'),
+                strpos($output, 'vendor/alpha')
+            );
+        }
+    }
+
     public function testSkipsPackagesNotInRootRequire(): void
     {
         $pluginDir = $this->fixtureRoot . '/dev-only';

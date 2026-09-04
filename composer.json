@@ -16,7 +16,8 @@
     },
     "require-dev": {
         "composer/composer": "^2.0",
-        "phpunit/phpunit": "^9.6"
+        "phpunit/phpunit": "^9.6",
+        "phpstan/phpstan": "1.12.28"
     },
     "autoload": {
         "psr-4": {
@@ -32,6 +33,7 @@
         "class": "BEAPI\\Composer\\DependencyShieldPlugin\\DependencyShield"
     },
     "scripts": {
-        "test": "phpunit"
+        "test": "phpunit",
+        "phpstan": "phpstan analyse -c phpstan.neon.dist"
     }
 }
