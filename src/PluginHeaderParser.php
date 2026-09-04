@@ -5,7 +5,10 @@ namespace BEAPI\Composer\DependencyShieldPlugin;
 /**
  * Discovers WordPress plugin files and reads their headers the same way core does.
  *
- * Discovery mirrors get_plugins() (wp-admin/includes/plugin.php).
+ * Discovery is applied to a single Composer package install path (not wp-content/plugins),
+ * so only root-level `.php` files are scanned — one level deeper would pick up bundled
+ * libraries that WordPress never loads as plugins.
+ *
  * Header parsing mirrors get_file_data() / _cleanup_header_comment() (wp-includes/functions.php).
  * No filters, translations, markup or cache.
  */
@@ -57,7 +60,7 @@ class PluginHeaderParser
     }
 
     /**
-     * @see get_plugins() file discovery in WordPress core
+     * List root-level `.php` files in a package install directory.
      *
      * @return list<string>
      */
@@ -76,28 +79,16 @@ class PluginHeaderParser
 
             $path = $pluginRoot . '/' . $file;
             if (is_dir($path)) {
-                $subdir = @opendir($path);
-                if (false === $subdir) {
-                    continue;
-                }
+                continue;
+            }
 
-                while (false !== ($subfile = readdir($subdir))) {
-                    if (strpos($subfile, '.') === 0) {
-                        continue;
-                    }
-
-                    if (substr($subfile, -4) === '.php') {
-                        $pluginFiles[] = $file . '/' . $subfile;
-                    }
-                }
-
-                closedir($subdir);
-            } elseif (substr($file, -4) === '.php') {
+            if (substr($file, -4) === '.php') {
                 $pluginFiles[] = $file;
             }
         }
 
         closedir($pluginsDir);
+        sort($pluginFiles);
 
         return $pluginFiles;
     }
@@ -142,6 +133,6 @@ class PluginHeaderParser
      */
     private function cleanupHeaderComment(string $str): string
     {
-        return trim(preg_replace('/\s*(?:\*\/|\?>).*/', '', $str));
+        return trim(preg_replace('/\s*(?:\*\/|\?>).*/', '', $str) ?? '');
     }
 }

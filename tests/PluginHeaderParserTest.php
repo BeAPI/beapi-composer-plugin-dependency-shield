@@ -46,17 +46,28 @@ PHP
         self::assertSame('8.0', $plugins['sample-plugin.php']['RequiresPHP']);
     }
 
-    public function testDiscoversPluginInOneLevelSubdirectory(): void
+    public function testIgnoresPluginHeadersInSubdirectories(): void
     {
-        mkdir($this->fixtureRoot . '/my-plugin', 0777, true);
         $this->writeFile(
-            $this->fixtureRoot . '/my-plugin/my-plugin.php',
+            $this->fixtureRoot . '/my-plugin.php',
             <<<'PHP'
 <?php
 /**
- * Plugin Name: Nested Plugin
- * Requires at least: 5.9
+ * Plugin Name: Root Plugin
  * Requires PHP: 7.4
+ */
+
+PHP
+        );
+
+        mkdir($this->fixtureRoot . '/vendor-lib', 0777, true);
+        $this->writeFile(
+            $this->fixtureRoot . '/vendor-lib/bundled.php',
+            <<<'PHP'
+<?php
+/**
+ * Plugin Name: Bundled Library Shim
+ * Requires PHP: 8.3
  */
 
 PHP
@@ -65,8 +76,9 @@ PHP
         $parser = new PluginHeaderParser();
         $plugins = $parser->findPlugins($this->fixtureRoot);
 
-        self::assertArrayHasKey('my-plugin/my-plugin.php', $plugins);
-        self::assertSame('Nested Plugin', $plugins['my-plugin/my-plugin.php']['Name']);
+        self::assertArrayHasKey('my-plugin.php', $plugins);
+        self::assertArrayNotHasKey('vendor-lib/bundled.php', $plugins);
+        self::assertCount(1, $plugins);
     }
 
     public function testIgnoresPhpFilesWithoutPluginName(): void
