@@ -53,7 +53,7 @@ class Checker
 
         $this->io->write('<info>Dependency Shield:</info> checking WordPress plugin requirements…');
 
-        $phpVersion = $this->resolvePhpVersion();
+        [$phpVersion, $phpSource] = $this->resolvePhpVersion();
         $wpVersion = $this->resolveWordpressVersion();
 
         if (null === $wpVersion) {
@@ -62,11 +62,15 @@ class Checker
                 . self::WP_CORE_IMPLEMENTATION
                 . '</comment> provider; WordPress requirement checks are skipped.'
             );
+            $this->io->write(
+                sprintf('  Using PHP <comment>%s</comment> (<comment>%s</comment>)', $phpVersion, $phpSource)
+            );
         } else {
             $this->io->write(
                 sprintf(
-                    '  Using PHP <comment>%s</comment>, WordPress <comment>%s</comment>',
+                    '  Using PHP <comment>%s</comment> (<comment>%s</comment>), WordPress <comment>%s</comment>',
                     $phpVersion,
+                    $phpSource,
                     $wpVersion
                 )
             );
@@ -220,14 +224,26 @@ class Checker
         return $map;
     }
 
-    private function resolvePhpVersion(): string
+    /**
+     * @return array{0: string, 1: string} [version, source label]
+     */
+    private function resolvePhpVersion(): array
     {
         $platform = $this->composer->getConfig()->get('platform') ?: [];
         if (!empty($platform['php']) && is_string($platform['php'])) {
-            return $platform['php'];
+            return [$platform['php'], 'config.platform.php'];
         }
 
-        return PHP_VERSION;
+        $requires = $this->composer->getPackage()->getRequires();
+        if (isset($requires['php']) && $requires['php'] instanceof Link) {
+            $pretty = $requires['php']->getPrettyConstraint();
+            $extracted = $this->extractMinimumVersion($pretty);
+            if (null !== $extracted) {
+                return [$extracted, 'require.php (' . $pretty . ')'];
+            }
+        }
+
+        return [PHP_VERSION, 'PHP_VERSION (runtime)'];
     }
 
     private function resolveWordpressVersion(): ?string
@@ -301,5 +317,17 @@ class Checker
     private function isLiteralVersion(string $version): bool
     {
         return (bool) preg_match('/^\d+(\.\d+){0,3}(-[A-Za-z0-9._-]+)?$/', $version);
+    }
+
+    /**
+     * Best-effort extraction of the first numeric version from a Composer constraint.
+     */
+    private function extractMinimumVersion(string $constraint): ?string
+    {
+        if (preg_match('/(\d+(?:\.\d+){0,3})/', $constraint, $matches)) {
+            return $matches[1];
+        }
+
+        return null;
     }
 }

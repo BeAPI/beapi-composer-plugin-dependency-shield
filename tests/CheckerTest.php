@@ -59,6 +59,7 @@ class CheckerTest extends TestCase
 
         $checker->check();
         self::assertStringContainsString('Dependency Shield', $io->getOutput());
+        self::assertStringContainsString('config.platform.php', $io->getOutput());
     }
 
     public function testStaysSilentWithoutInstallerPaths(): void
@@ -249,6 +250,34 @@ class CheckerTest extends TestCase
         self::assertStringContainsString('all checked plugins are compatible', $io->getOutput());
     }
 
+    public function testFallsBackToRootRequirePhpWhenPlatformIsMissing(): void
+    {
+        $pluginDir = $this->fixtureRoot . '/require-php';
+        mkdir($pluginDir);
+        file_put_contents(
+            $pluginDir . '/require-php.php',
+            "<?php\n/**\n * Plugin Name: Require PHP\n * Requires PHP: 8.0\n */\n"
+        );
+
+        $io = new BufferIO();
+        $checker = $this->createChecker(
+            [
+                $this->createPluginPackage('vendor/require-php', $pluginDir),
+                $this->createWpCorePackage('6.8.3'),
+            ],
+            ['vendor/require-php' => true],
+            [],
+            null,
+            null,
+            $io,
+            '>=8.1'
+        );
+
+        $checker->check();
+        self::assertStringContainsString('require.php (>=8.1)', $io->getOutput());
+        self::assertStringContainsString('all checked plugins are compatible', $io->getOutput());
+    }
+
     public function testSkipsPackagesNotInRootRequire(): void
     {
         $pluginDir = $this->fixtureRoot . '/dev-only';
@@ -282,9 +311,10 @@ class CheckerTest extends TestCase
         array $installedPackages,
         array $rootRequires,
         array $ignore,
-        string $platformPhp,
+        ?string $platformPhp,
         ?array $installerPaths = null,
-        ?BufferIO $io = null
+        ?BufferIO $io = null,
+        ?string $rootRequirePhp = null
     ): Checker {
         $pathMap = [];
         foreach ($installedPackages as $package) {
@@ -306,6 +336,15 @@ class CheckerTest extends TestCase
         $links = [];
         foreach (array_keys($rootRequires) as $name) {
             $links[$name] = new Link('__root__', $name, new Constraint('=', '1.0.0'));
+        }
+        if (null !== $rootRequirePhp) {
+            $links['php'] = new Link(
+                '__root__',
+                'php',
+                new Constraint('>=', preg_replace('/^[^\d]*/', '', $rootRequirePhp) ?: '7.4'),
+                Link::TYPE_REQUIRE,
+                $rootRequirePhp
+            );
         }
         $root->method('getRequires')->willReturn($links);
         $root->method('getExtra')->willReturn([
@@ -336,6 +375,10 @@ class CheckerTest extends TestCase
         $config->method('get')->willReturnCallback(
             static function ($key) use ($platformPhp) {
                 if ($key === 'platform') {
+                    if (null === $platformPhp || $platformPhp === '') {
+                        return [];
+                    }
+
                     return ['php' => $platformPhp];
                 }
 
