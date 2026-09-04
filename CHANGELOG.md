@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1 - 04 Sep 2026
+
+* Declare package version in `composer.json`
+
 ## 1.0.0 - 04 Sep 2026
 
 * Initial release
