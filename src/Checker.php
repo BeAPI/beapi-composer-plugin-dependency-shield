@@ -134,12 +134,12 @@ class Checker
             return;
         }
 
-        $message = "Dependency Shield found incompatible WordPress plugin requirements:\n  - "
+        $detail = "Dependency Shield found incompatible WordPress plugin requirements:\n  - "
             . implode("\n  - ", $violations);
 
-        $this->io->writeError('<error>' . $message . '</error>');
-
-        throw new RuntimeException($message);
+        // Print once here; throw a short message so Composer does not dump the full list again.
+        $this->io->writeError('<error>' . $detail . '</error>');
+        throw new RuntimeException('Dependency Shield found incompatible WordPress plugin requirements.');
     }
 
     /**

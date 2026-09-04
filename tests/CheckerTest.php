@@ -134,6 +134,7 @@ class CheckerTest extends TestCase
             "<?php\n/**\n * Plugin Name: Bad\n * Requires at least: 6.9\n * Requires PHP: 8.3\n */\n"
         );
 
+        $io = new BufferIO();
         $checker = $this->createChecker(
             [
                 $this->createPluginPackage('vendor/bad-plugin', $pluginDir),
@@ -141,16 +142,24 @@ class CheckerTest extends TestCase
             ],
             ['vendor/bad-plugin' => true],
             [],
-            '8.1.0'
+            '8.1.0',
+            null,
+            $io
         );
 
         try {
             $checker->check();
             self::fail('Expected RuntimeException');
         } catch (RuntimeException $e) {
-            self::assertStringContainsString('vendor/bad-plugin', $e->getMessage());
-            self::assertStringContainsString('PHP >= 8.3', $e->getMessage());
-            self::assertStringContainsString('WordPress >= 6.9', $e->getMessage());
+            self::assertSame(
+                'Dependency Shield found incompatible WordPress plugin requirements.',
+                $e->getMessage()
+            );
+            $output = $io->getOutput();
+            self::assertStringContainsString('vendor/bad-plugin', $output);
+            self::assertStringContainsString('PHP >= 8.3', $output);
+            self::assertStringContainsString('WordPress >= 6.9', $output);
+            self::assertSame(1, substr_count($output, 'PHP >= 8.3'));
         }
     }
 
