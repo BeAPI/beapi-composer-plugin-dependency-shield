@@ -35,14 +35,19 @@ class Checker
      * Run the dependency shield checks.
      *
      * Stays completely silent when the root project is not a WordPress Composer
-     * project (no extra.installer-paths with type:wordpress-plugin). Safe for
-     * global Composer installs.
+     * project (no extra.installer-paths with type:wordpress-plugin or
+     * type:wordpress-muplugin). Safe for global Composer installs.
      *
      * @throws RuntimeException When one or more packages violate PHP/WP requirements.
      */
     public function check(): void
     {
         if (!$this->isWordPressComposerProject()) {
+            $this->io->write(
+                '<info>Dependency Shield:</info> non-WordPress Composer project; skipped.',
+                true,
+                IOInterface::VERBOSE
+            );
             return;
         }
 
@@ -155,7 +160,10 @@ class Checker
             }
 
             foreach ($rules as $rule) {
-                if (is_string($rule) && 'type:wordpress-plugin' === $rule) {
+                if (
+                    is_string($rule)
+                    && ('type:wordpress-plugin' === $rule || 'type:wordpress-muplugin' === $rule)
+                ) {
                     return true;
                 }
             }

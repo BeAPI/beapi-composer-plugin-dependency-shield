@@ -94,6 +94,37 @@ class CheckerTest extends TestCase
         self::assertSame('', $io->getOutput());
     }
 
+    public function testRunsWhenOnlyMupluginInstallerPathIsPresent(): void
+    {
+        $pluginDir = $this->fixtureRoot . '/mu-plugin';
+        mkdir($pluginDir);
+        file_put_contents(
+            $pluginDir . '/mu-plugin.php',
+            "<?php\n/**\n * Plugin Name: MU\n * Requires PHP: 7.4\n */\n"
+        );
+
+        $io = new BufferIO();
+        $package = $this->createPluginPackage('vendor/mu-plugin', $pluginDir);
+        $package->setType('wordpress-muplugin');
+
+        $checker = $this->createChecker(
+            [
+                $package,
+                $this->createWpCorePackage('6.8.3'),
+            ],
+            ['vendor/mu-plugin' => true],
+            [],
+            '8.1.0',
+            [
+                'web/app/mu-plugins/{$name}/' => ['type:wordpress-muplugin'],
+            ],
+            $io
+        );
+
+        $checker->check();
+        self::assertStringContainsString('all checked plugins are compatible', $io->getOutput());
+    }
+
     public function testFailsOnPhpAndWpMismatchAndListsAllViolations(): void
     {
         $pluginDir = $this->fixtureRoot . '/bad-plugin';
