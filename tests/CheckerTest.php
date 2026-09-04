@@ -14,6 +14,7 @@ use Composer\Package\RootPackage;
 use Composer\Repository\InstalledRepositoryInterface;
 use Composer\Repository\RepositoryManager;
 use Composer\Semver\Constraint\Constraint;
+use Composer\Semver\Constraint\MatchAllConstraint;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -207,6 +208,45 @@ class CheckerTest extends TestCase
         // WP requirement is ignored; PHP is fine.
         $checker->check();
         $this->addToAssertionCount(1);
+    }
+
+    public function testSkipsWpCheckWhenProvideConstraintIsNotLiteral(): void
+    {
+        $pluginDir = $this->fixtureRoot . '/star-wp';
+        mkdir($pluginDir);
+        file_put_contents(
+            $pluginDir . '/star-wp.php',
+            "<?php\n/**\n * Plugin Name: Star WP\n * Requires at least: 6.0\n * Requires PHP: 7.4\n */\n"
+        );
+
+        $wp = new Package('vendor/fake-core', '1.0.0.0', '1.0.0');
+        $wp->setType('wordpress-core');
+        $wp->setProvides([
+            'wordpress/core-implementation' => new Link(
+                'vendor/fake-core',
+                'wordpress/core-implementation',
+                new MatchAllConstraint(),
+                Link::TYPE_PROVIDE,
+                '*'
+            ),
+        ]);
+
+        $io = new BufferIO();
+        $checker = $this->createChecker(
+            [
+                $this->createPluginPackage('vendor/star-wp', $pluginDir),
+                $wp,
+            ],
+            ['vendor/star-wp' => true],
+            [],
+            '8.1.0',
+            null,
+            $io
+        );
+
+        $checker->check();
+        self::assertStringContainsString('not a literal version', $io->getOutput());
+        self::assertStringContainsString('all checked plugins are compatible', $io->getOutput());
     }
 
     public function testSkipsPackagesNotInRootRequire(): void

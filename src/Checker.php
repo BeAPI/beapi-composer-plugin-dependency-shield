@@ -58,9 +58,9 @@ class Checker
 
         if (null === $wpVersion) {
             $this->io->write(
-                '<warning>Dependency Shield:</warning> no package provides <comment>'
+                '<warning>Dependency Shield:</warning> no usable <comment>'
                 . self::WP_CORE_IMPLEMENTATION
-                . '</comment>; WordPress requirement checks are skipped.'
+                . '</comment> provider; WordPress requirement checks are skipped.'
             );
         } else {
             $this->io->write(
@@ -233,6 +233,7 @@ class Checker
     private function resolveWordpressVersion(): ?string
     {
         $localRepo = $this->composer->getRepositoryManager()->getLocalRepository();
+        $candidates = [];
 
         foreach ($localRepo->getPackages() as $package) {
             foreach ($package->getProvides() as $link) {
@@ -245,12 +246,60 @@ class Checker
                 }
 
                 $constraint = $link->getPrettyConstraint();
-                if (is_string($constraint) && $constraint !== '') {
-                    return $constraint;
+                if (!is_string($constraint) || $constraint === '') {
+                    continue;
                 }
+
+                $candidates[] = [
+                    'package' => $package->getName(),
+                    'constraint' => $constraint,
+                ];
             }
         }
 
-        return null;
+        if ($candidates === []) {
+            return null;
+        }
+
+        if (count($candidates) > 1) {
+            $names = array_map(
+                static function (array $c): string {
+                    return $c['package'] . ' (' . $c['constraint'] . ')';
+                },
+                $candidates
+            );
+            $this->io->write(
+                '<warning>Dependency Shield:</warning> multiple packages provide <comment>'
+                . self::WP_CORE_IMPLEMENTATION
+                . '</comment>: '
+                . implode(', ', $names)
+                . '. Using the first one.'
+            );
+        }
+
+        $chosen = $candidates[0]['constraint'];
+        if (!$this->isLiteralVersion($chosen)) {
+            $this->io->write(
+                sprintf(
+                    '<warning>Dependency Shield:</warning> <comment>%s</comment> provides'
+                    . ' <comment>%s</comment> as <comment>%s</comment> (not a literal version);'
+                    . ' WordPress requirement checks are skipped.',
+                    $candidates[0]['package'],
+                    self::WP_CORE_IMPLEMENTATION,
+                    $chosen
+                )
+            );
+            return null;
+        }
+
+        return $chosen;
+    }
+
+    /**
+     * Accept plain versions such as 6.8, 6.8.3, or 6.8.3-RC1.
+     */
+    private function isLiteralVersion(string $version): bool
+    {
+        return (bool) preg_match('/^\d+(\.\d+){0,3}(-[A-Za-z0-9._-]+)?$/', $version);
     }
 }
