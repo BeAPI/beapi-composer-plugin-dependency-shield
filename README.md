@@ -11,9 +11,21 @@ Also exposes a manual command: `composer dependency-shield` (exit code `1` on vi
 
 ## Installation
 
-### Per-project (recommended)
+### Global (recommended)
 
-Reproducible, present in CI, and the only mode that reliably guards merges and deploys:
+One install on the machine, active on every Bedrock / Composer WP project without touching each `composer.json`:
+
+```bash
+composer global require beapi/composer-plugin-dependency-shield
+composer global config allow-plugins.beapi/composer-plugin-dependency-shield true
+```
+
+On non-WordPress Composer projects the plugin stays **completely silent** (no output, no failure).
+It only runs when the root `composer.json` has `extra.installer-paths` containing `type:wordpress-plugin` or `type:wordpress-muplugin`.
+
+### Per-project (optional)
+
+Use when you need the plugin declared in the project (e.g. CI running `composer dependency-shield` without a global install):
 
 ```bash
 composer require beapi/composer-plugin-dependency-shield --dev
@@ -30,24 +42,6 @@ Allow the plugin in the root `composer.json`:
   }
 }
 ```
-
-In CI:
-
-```bash
-composer dependency-shield
-```
-
-### Global (optional)
-
-Useful for immediate local feedback, not a replacement for the per-project install:
-
-```bash
-composer global require beapi/composer-plugin-dependency-shield
-composer global config allow-plugins.beapi/composer-plugin-dependency-shield true
-```
-
-On non-WordPress Composer projects the plugin stays **completely silent** (no output, no failure).
-It only runs when the root `composer.json` has `extra.installer-paths` containing `type:wordpress-plugin` or `type:wordpress-muplugin`.
 
 ## Behaviour
 
@@ -91,20 +85,10 @@ Headers are only readable after download: the shield cannot prevent the network 
 
 ## Local testing on a Bedrock (or any Composer WP) project
 
-### Option A — path repo in the project (recommended)
+### Option A — global + path repo (recommended)
 
 ```bash
-cd /path/to/your-bedrock-project
-composer config repositories.dependency-shield path ../composer-plugin-dependency-shield
-composer require beapi/composer-plugin-dependency-shield --dev
-```
-
-Ensure `config.allow-plugins` includes `beapi/composer-plugin-dependency-shield: true`.
-
-### Option B — global + path repo
-
-```bash
-composer global config repositories.dependency-shield path /path-to-composer-file/composer-plugin-dependency-shield
+composer global config repositories.dependency-shield path /path-to/composer-plugin-dependency-shield
 composer global require beapi/composer-plugin-dependency-shield:@dev
 composer global config allow-plugins.beapi/composer-plugin-dependency-shield true
 ```
@@ -117,6 +101,16 @@ composer dependency-shield
 ```
 
 On a non-WP project (no matching `installer-paths`), the same commands stay silent.
+
+### Option B — path repo in the project
+
+```bash
+cd /path/to/your-bedrock-project
+composer config repositories.dependency-shield path ../composer-plugin-dependency-shield
+composer require beapi/composer-plugin-dependency-shield:@dev --dev
+```
+
+Ensure `config.allow-plugins` includes `beapi/composer-plugin-dependency-shield: true`.
 
 ### Run the check
 

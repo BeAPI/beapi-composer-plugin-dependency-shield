@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1 - 04 Sep 2026
+
+* Restore global install as the recommended setup in the README (#15)
+
 ## 1.1.0 - 04 Sep 2026
 
 * Scan only root-level `.php` files in each package (fix false positives from bundled libs) (#1)
