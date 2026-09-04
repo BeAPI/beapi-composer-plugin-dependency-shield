@@ -1,0 +1,36 @@
+{
+    "name": "beapi/composer-plugin-dependency-shield",
+    "description": "Composer plugin that checks WordPress plugin PHP/WP requirements against the project after install/update.",
+    "type": "composer-plugin",
+    "license": "GPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "BeAPI",
+            "email": "technical@beapi.fr"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "composer-plugin-api": "^2.0"
+    },
+    "require-dev": {
+        "composer/composer": "^2.0",
+        "phpunit/phpunit": "^9.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "BEAPI\\Composer\\DependencyShieldPlugin\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "BEAPI\\Composer\\DependencyShieldPlugin\\Tests\\": "tests"
+        }
+    },
+    "extra": {
+        "class": "BEAPI\\Composer\\DependencyShieldPlugin\\DependencyShield"
+    },
+    "scripts": {
+        "test": "phpunit"
+    }
+}
