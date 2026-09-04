@@ -38,7 +38,9 @@ class Checker
      * project (no extra.installer-paths with type:wordpress-plugin or
      * type:wordpress-muplugin). Safe for global Composer installs.
      *
-     * @throws RuntimeException When one or more packages violate PHP/WP requirements.
+     * Always fails hard on violations (install/update hooks and the command).
+     *
+     * @throws RuntimeException When one or more packages violate requirements.
      */
     public function check(): void
     {

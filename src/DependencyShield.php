@@ -58,6 +58,8 @@ class DependencyShield implements PluginInterface, Capable, CommandProvider, Eve
     }
 
     /**
+     * Always fail hard on violations after install/update.
+     *
      * @throws RuntimeException
      */
     public function onPostInstallOrUpdate(): void
