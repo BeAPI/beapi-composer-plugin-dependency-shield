@@ -71,7 +71,7 @@ Allow the plugin in the root `composer.json`:
 ### Option A — global + path repo
 
 ```bash
-composer global config repositories.dependency-shield path /Users/njuen/Developer/beapi/beapi-composer-plugin-dependency-shield
+composer global config repositories.dependency-shield path /path-to-composer-file/beapi-composer-plugin-dependency-shield
 composer global require beapi/composer-plugin-dependency-shield:@dev
 composer global config allow-plugins.beapi/composer-plugin-dependency-shield true
 ```
